@@ -4,7 +4,7 @@ import React, { useState, useEffect, useRef } from "react";
 import { useLiveQuery } from "dexie-react-hooks";
 import { db, ensureSeeded } from "@/lib/db";
 import { Note } from "@/lib/types";
-import { generateSlug, formatNoteToMarkdown, downloadFile } from "@/lib/markdown";
+import { generateSlug, generateUniqueSlug, formatNoteToMarkdown, downloadFile } from "@/lib/markdown";
 import { Sidebar } from "@/components/Sidebar";
 import { NoteEditor } from "@/components/NoteEditor";
 import { TodoWorkspace } from "@/components/TodoWorkspace";
@@ -123,26 +123,33 @@ export default function HomePage() {
   };
 
   const handleCreateNewNote = async (customTitle?: string, folder?: string) => {
-    const count = notes.length + 1;
-    const title = customTitle?.trim() || `Untitled Note ${count}`;
-    const slug = generateSlug(title);
+    try {
+      const allNotes = await db.notes.toArray();
+      const existingSlugs = allNotes.map((n) => n.slug);
+      const count = allNotes.length + 1;
+      const title = customTitle?.trim() || `Untitled Note ${count}`;
+      const slug = generateUniqueSlug(title, existingSlugs);
 
-    const newNote: Omit<Note, "id"> = {
-      title,
-      slug,
-      content: `# ${title}\n\nStart writing markdown content here...`,
-      tags: ["new"],
-      folder: folder || undefined,
-      created_at: new Date().toISOString(),
-      updated_at: new Date().toISOString(),
-      is_published: false,
-    };
+      const newNote: Omit<Note, "id"> = {
+        title,
+        slug,
+        content: `# ${title}\n\nStart writing markdown content here...`,
+        tags: ["new"],
+        folder: folder || undefined,
+        created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString(),
+        is_published: false,
+      };
 
-    const id = await db.notes.add(newNote);
-    setActiveNoteId(id);
-    setActiveView("notes");
-    setIsMobileOpen(false);
-    showToast(folder ? `New note in "${folder}"! (⌘N)` : "New note created! (⌘N)");
+      const id = await db.notes.add(newNote);
+      setActiveNoteId(id);
+      setActiveView("notes");
+      setIsMobileOpen(false);
+      showToast(folder ? `New note in "${folder}"! (⌘N)` : "New note created! (⌘N)");
+    } catch (err) {
+      console.error("Failed to create note:", err);
+      showToast("Error creating note. Please try again.");
+    }
   };
 
   const handleTogglePreview = () => {
@@ -244,7 +251,24 @@ export default function HomePage() {
   };
 
   const handleBatchImport = async (importedNotes: Omit<Note, "id">[]) => {
-    await db.notes.bulkAdd(importedNotes);
+    try {
+      const allNotes = await db.notes.toArray();
+      const existingSlugs = new Set(allNotes.map((n) => n.slug));
+      const sanitized = importedNotes.map((n) => {
+        let slug = n.slug;
+        let counter = 1;
+        while (existingSlugs.has(slug)) {
+          counter++;
+          slug = `${n.slug}-${counter}`;
+        }
+        existingSlugs.add(slug);
+        return { ...n, slug };
+      });
+      await db.notes.bulkAdd(sanitized);
+    } catch (err) {
+      console.error("Failed to batch import notes:", err);
+      showToast("Error importing notes.");
+    }
   };
 
   const handleExportAll = () => {

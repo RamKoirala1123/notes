@@ -1,6 +1,6 @@
 "use client";
 
-import React from "react";
+import React, { useRef, useLayoutEffect, useState } from "react";
 import {
   Bold,
   Italic,
@@ -30,7 +30,7 @@ export type SelectionAction =
 
 interface FloatingSelectionToolbarProps {
   isOpen: boolean;
-  position: { top: number; left: number };
+  position: { top: number; left: number; height?: number };
   onAction: (action: SelectionAction) => void;
 }
 
@@ -39,11 +39,58 @@ export const FloatingSelectionToolbar: React.FC<FloatingSelectionToolbarProps> =
   position,
   onAction,
 }) => {
+  const toolbarRef = useRef<HTMLDivElement>(null);
+  const [dimensions, setDimensions] = useState<{ width: number; height: number }>({
+    width: 380,
+    height: 42,
+  });
+
+  // Measure rendered toolbar dimensions to handle dynamic width/height accurately
+  useLayoutEffect(() => {
+    if (isOpen && toolbarRef.current) {
+      const rect = toolbarRef.current.getBoundingClientRect();
+      if (
+        rect.width > 0 &&
+        (Math.abs(rect.width - dimensions.width) > 1 ||
+          Math.abs(rect.height - dimensions.height) > 1)
+      ) {
+        setDimensions({ width: rect.width, height: rect.height });
+      }
+    }
+  }, [isOpen, position.left, position.top, dimensions.width, dimensions.height]);
+
   if (!isOpen) return null;
 
-  // Clamp position within window bounds
-  const clampedTop = Math.max(12, position.top - 48);
-  const clampedLeft = Math.max(16, Math.min(position.left - 160, window.innerWidth - 380));
+  const PADDING = 12;
+  const TOP_SAFE_MARGIN = 58; // Clearance for top header bar and action controls
+  const GAP = 8;
+  const lineHeight = position.height || 22;
+
+  const winWidth = typeof window !== "undefined" ? window.innerWidth : 1200;
+  const winHeight = typeof window !== "undefined" ? window.innerHeight : 800;
+
+  // 1. Horizontal Position:
+  // Center toolbar horizontally over the cursor / selection center point
+  const idealLeft = position.left - dimensions.width / 2;
+  const maxLeft = Math.max(PADDING, winWidth - dimensions.width - PADDING);
+  const clampedLeft = Math.max(PADDING, Math.min(idealLeft, maxLeft));
+
+  // 2. Vertical Position:
+  // Prefer above selection; if space is constrained near top header, flip below
+  const spaceAbove = position.top - TOP_SAFE_MARGIN;
+  const canFitAbove = spaceAbove >= dimensions.height + GAP;
+
+  let clampedTop: number;
+  if (canFitAbove) {
+    clampedTop = position.top - dimensions.height - GAP;
+  } else {
+    // Show below selection line
+    clampedTop = position.top + lineHeight + GAP;
+    // Prevent clipping below screen viewport
+    if (clampedTop + dimensions.height > winHeight - PADDING) {
+      clampedTop = Math.max(TOP_SAFE_MARGIN + PADDING, winHeight - dimensions.height - PADDING);
+    }
+  }
 
   const items: {
     id: SelectionAction;
@@ -66,13 +113,14 @@ export const FloatingSelectionToolbar: React.FC<FloatingSelectionToolbarProps> =
 
   return (
     <div
+      ref={toolbarRef}
       style={{
         position: "fixed",
         top: `${clampedTop}px`,
         left: `${clampedLeft}px`,
         zIndex: 50,
       }}
-      className="flex items-center gap-0.5 p-1 bg-neutral-900/95 backdrop-blur-xl border border-neutral-700/80 rounded-xl shadow-2xl text-neutral-200 ring-1 ring-white/10 animate-in fade-in zoom-in-95 duration-100 select-none"
+      className="flex items-center gap-0.5 p-1 bg-neutral-900/95 backdrop-blur-xl border border-neutral-700/80 rounded-xl shadow-2xl text-neutral-200 ring-1 ring-white/10 animate-in fade-in zoom-in-95 duration-100 select-none max-w-[calc(100vw-24px)] overflow-x-auto no-scrollbar"
     >
       {items.map((item, idx) => {
         const Icon = item.icon;

@@ -32,6 +32,40 @@ export function generateSlug(title: string): string {
 }
 
 /**
+ * Generate a safe, unique slug from a title, avoiding duplicates in existingSlugs.
+ */
+export function generateUniqueSlug(
+  title: string,
+  existingSlugs: string[] = [],
+  currentSlug?: string
+): string {
+  const base = generateSlug(title);
+  if (currentSlug && base === currentSlug) {
+    return currentSlug;
+  }
+
+  const existing = new Set(
+    existingSlugs.filter((s): s is string => Boolean(s && s !== currentSlug))
+  );
+
+  if (!existing.has(base)) {
+    return base;
+  }
+
+  // If base ends with a number (e.g. untitled-note-4), extract prefix and number
+  const match = base.match(/^(.*?)-(\d+)$/);
+  const prefix = match ? match[1] : base;
+  let counter = match ? parseInt(match[2], 10) + 1 : 1;
+
+  let candidate = `${prefix}-${counter}`;
+  while (existing.has(candidate)) {
+    counter++;
+    candidate = `${prefix}-${counter}`;
+  }
+  return candidate;
+}
+
+/**
  * Extract title from Markdown content if not provided in frontmatter.
  */
 export function extractTitle(content: string, defaultTitle: string = "Untitled Note"): string {

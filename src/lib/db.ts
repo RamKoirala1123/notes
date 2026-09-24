@@ -17,6 +17,20 @@ export class MyNotesDatabase extends Dexie {
     this.version(3).stores({
       notes: "++id, &slug, *tags, updated_at, is_published, folder",
     });
+    this.version(4).stores({
+      notes: "++id, slug, *tags, updated_at, is_published, folder",
+    }).upgrade(async (tx) => {
+      const seenSlugs = new Set<string>();
+      await tx.table("notes").toCollection().modify((note: any) => {
+        if (!note.slug) {
+          note.slug = `note-${note.id || Date.now()}`;
+        }
+        if (seenSlugs.has(note.slug)) {
+          note.slug = `${note.slug}-${note.id || Date.now()}`;
+        }
+        seenSlugs.add(note.slug);
+      });
+    });
   }
 }
 
