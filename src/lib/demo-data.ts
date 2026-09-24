@@ -33,6 +33,7 @@ export const INITIAL_DEMO_NOTES: Omit<Note, "id">[] = [
 - \`⌘ + P\` : Preview Mode Toggle
 `,
     tags: ["welcome", "getting-started", "guide"],
+    folder: "Home",
     created_at: new Date(Date.now() - 86400000 * 2).toISOString(),
     updated_at: new Date().toISOString(),
     is_published: true,
@@ -106,6 +107,7 @@ sequenceDiagram
 > Return to [[welcome-to-mynotes]] to explore more capabilities!
 `,
     tags: ["math", "diagrams", "katex", "mermaid"],
+    folder: "Work",
     created_at: new Date(Date.now() - 86400000 * 1).toISOString(),
     updated_at: new Date().toISOString(),
     is_published: false,
@@ -133,6 +135,7 @@ Wikilinks allow bidirectionally linking notes together:
 > If a linked note does not exist yet, clicking the link will prompt you to create it instantly!
 `,
     tags: ["productivity", "guide", "knowledge-base"],
+    folder: "Work",
     created_at: new Date().toISOString(),
     updated_at: new Date().toISOString(),
     is_published: false,

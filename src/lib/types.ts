@@ -8,6 +8,7 @@ export interface Note {
   updated_at: string;
   is_published: boolean;
   published_at?: string;
+  folder?: string;
 }
 
 export interface Todo {
@@ -34,6 +35,7 @@ export interface NoteFrontmatter {
   slug?: string;
   date?: string;
   tags?: string[];
+  folder?: string;
 }
 
 export interface ExportedNote {

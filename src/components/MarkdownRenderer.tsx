@@ -8,12 +8,26 @@ import rehypeKatex from "rehype-katex";
 import rehypeRaw from "rehype-raw";
 import { processWikilinks, parseFrontmatter } from "@/lib/markdown";
 
+import { Info, Lightbulb, AlertTriangle, Bookmark, ShieldAlert } from "lucide-react";
+
 // Import KaTeX styles
 import "katex/dist/katex.min.css";
 
 interface MarkdownRendererProps {
   content: string;
   className?: string;
+  onToggleTask?: (taskIndex: number, checked: boolean) => void;
+}
+
+/**
+ * Normalizes callouts so lines starting with !note, !warning, !tip, [!note], etc.
+ * get recognized as blockquotes even if the user didn't start the line with '> '.
+ */
+function normalizeCalloutSyntax(markdown: string): string {
+  return markdown.replace(
+    /(^|\n)(?!\s*>)\s*(\[?!\s*(?:NOTE|TIP|IMPORTANT|WARNING|CAUTION|CALLOUT|INFO)\]?.*)/gim,
+    "$1> $2"
+  );
 }
 
 /**
@@ -70,9 +84,16 @@ const MermaidDiagram: React.FC<{ code: string }> = ({ code }) => {
   );
 };
 
-export const MarkdownRenderer: React.FC<MarkdownRendererProps> = ({ content, className = "" }) => {
+export const MarkdownRenderer: React.FC<MarkdownRendererProps> = ({
+  content,
+  className = "",
+  onToggleTask,
+}) => {
   const { body } = parseFrontmatter(content);
-  const processedMarkdown = processWikilinks(body);
+  const normalizedBody = normalizeCalloutSyntax(body);
+  const processedMarkdown = processWikilinks(normalizedBody);
+
+  let taskCounter = 0;
 
   return (
     <div className={`markdown-body prose prose-invert max-w-none ${className}`}>
@@ -80,41 +101,175 @@ export const MarkdownRenderer: React.FC<MarkdownRendererProps> = ({ content, cla
         remarkPlugins={[remarkGfm, remarkMath]}
         rehypePlugins={[rehypeRaw, rehypeKatex]}
         components={{
+          // Interactive GFM Task List Checkboxes
+          input({ checked, type, ...props }: any) {
+            if (type === "checkbox") {
+              const currentTaskIdx = taskCounter++;
+              return (
+                <input
+                  type="checkbox"
+                  checked={Boolean(checked)}
+                  onChange={(e) => {
+                    onToggleTask?.(currentTaskIdx, e.target.checked);
+                  }}
+                  className="accent-indigo-500 cursor-pointer rounded mr-2"
+                  {...props}
+                />
+              );
+            }
+            return <input type={type} {...props} />;
+          },
+
           // Custom Callout rendering
           blockquote({ children }) {
             const childrenArray = React.Children.toArray(children);
-            const firstChild = childrenArray[0];
+            const firstElemIdx = childrenArray.findIndex((c) => React.isValidElement(c));
 
             let calloutType: string | null = null;
-            if (React.isValidElement(firstChild)) {
-              const props = firstChild.props as { children?: any };
-              if (typeof props?.children === "string") {
-                const text = props.children;
-                const match = text.match(/^\[!(NOTE|TIP|IMPORTANT|WARNING|CAUTION)\]/i);
-                if (match) {
-                  calloutType = match[1].toUpperCase();
+            let customTitle: string | null = null;
+            let cleanedChildren = children;
+
+            if (firstElemIdx !== -1) {
+              const firstElem = childrenArray[firstElemIdx] as React.ReactElement<{ children?: any }>;
+              const pChildren = firstElem.props.children;
+              let firstText = "";
+
+              if (typeof pChildren === "string") {
+                firstText = pChildren;
+              } else if (Array.isArray(pChildren) && typeof pChildren[0] === "string") {
+                firstText = pChildren[0];
+              }
+
+              // Matches: [!NOTE], !note, ! warning, [!warning], [!callout], etc.
+              const calloutRegex = /^\s*\[?!\s*(NOTE|TIP|IMPORTANT|WARNING|CAUTION|CALLOUT|INFO)\]?:?\s*(.*)$/i;
+              const [firstLine, ...remainingLines] = firstText.split("\n");
+              const match = firstLine.match(calloutRegex);
+
+              if (match) {
+                let typeKey = match[1].toUpperCase();
+                if (typeKey === "INFO" || typeKey === "CALLOUT") typeKey = "NOTE";
+                calloutType = typeKey;
+
+                const afterMatch = match[2].trim();
+                let restOfParagraph = "";
+
+                if (remainingLines.length > 0) {
+                  customTitle = afterMatch || null;
+                  restOfParagraph = remainingLines.join("\n").trim();
+                } else {
+                  // Single line callout, e.g. "> ! warning: check this out" or "> [!NOTE] hello"
+                  customTitle = null;
+                  restOfParagraph = afterMatch;
                 }
+
+                let cleanedFirstElem: React.ReactNode = null;
+
+                if (typeof pChildren === "string") {
+                  if (restOfParagraph) {
+                    cleanedFirstElem = React.cloneElement(firstElem, {}, restOfParagraph);
+                  }
+                } else if (Array.isArray(pChildren)) {
+                  const newPChildren = [...pChildren];
+                  if (restOfParagraph) {
+                    newPChildren[0] = restOfParagraph;
+                  } else {
+                    newPChildren.shift();
+                  }
+                  if (newPChildren.length > 0) {
+                    cleanedFirstElem = React.cloneElement(firstElem, {}, ...newPChildren);
+                  }
+                }
+
+                const newChildrenList = [...childrenArray];
+                if (cleanedFirstElem) {
+                  newChildrenList[firstElemIdx] = cleanedFirstElem;
+                } else {
+                  newChildrenList.splice(firstElemIdx, 1);
+                }
+                cleanedChildren = newChildrenList;
               }
             }
 
             if (calloutType) {
-              const stylesMap: Record<string, { bg: string; border: string; icon: string; title: string; color: string }> = {
-                NOTE: { bg: "bg-blue-950/40", border: "border-blue-500", icon: "ℹ️", title: "Note", color: "text-blue-400" },
-                TIP: { bg: "bg-emerald-950/40", border: "border-emerald-500", icon: "💡", title: "Tip", color: "text-emerald-400" },
-                IMPORTANT: { bg: "bg-purple-950/40", border: "border-purple-500", icon: "📌", title: "Important", color: "text-purple-400" },
-                WARNING: { bg: "bg-amber-950/40", border: "border-amber-500", icon: "⚠️", title: "Warning", color: "text-amber-400" },
-                CAUTION: { bg: "bg-rose-950/40", border: "border-rose-500", icon: "🚨", title: "Caution", color: "text-rose-400" },
+              const stylesMap: Record<
+                string,
+                {
+                  bg: string;
+                  border: string;
+                  icon: React.ComponentType<{ className?: string }>;
+                  title: string;
+                  titleColor: string;
+                  iconBg: string;
+                  iconColor: string;
+                }
+              > = {
+                NOTE: {
+                  bg: "bg-blue-950/25 border-blue-500/30",
+                  border: "border-l-blue-500",
+                  icon: Info,
+                  title: "Note",
+                  titleColor: "text-blue-400",
+                  iconBg: "bg-blue-500/20",
+                  iconColor: "text-blue-400",
+                },
+                TIP: {
+                  bg: "bg-emerald-950/25 border-emerald-500/30",
+                  border: "border-l-emerald-500",
+                  icon: Lightbulb,
+                  title: "Tip",
+                  titleColor: "text-emerald-400",
+                  iconBg: "bg-emerald-500/20",
+                  iconColor: "text-emerald-400",
+                },
+                IMPORTANT: {
+                  bg: "bg-purple-950/25 border-purple-500/30",
+                  border: "border-l-purple-500",
+                  icon: Bookmark,
+                  title: "Important",
+                  titleColor: "text-purple-400",
+                  iconBg: "bg-purple-500/20",
+                  iconColor: "text-purple-400",
+                },
+                WARNING: {
+                  bg: "bg-amber-950/25 border-amber-500/30",
+                  border: "border-l-amber-500",
+                  icon: AlertTriangle,
+                  title: "Warning",
+                  titleColor: "text-amber-400",
+                  iconBg: "bg-amber-500/20",
+                  iconColor: "text-amber-400",
+                },
+                CAUTION: {
+                  bg: "bg-rose-950/25 border-rose-500/30",
+                  border: "border-l-rose-500",
+                  icon: ShieldAlert,
+                  title: "Caution",
+                  titleColor: "text-rose-400",
+                  iconBg: "bg-rose-500/20",
+                  iconColor: "text-rose-400",
+                },
               };
 
               const style = stylesMap[calloutType] || stylesMap.NOTE;
+              const Icon = style.icon;
 
               return (
-                <div className={`my-4 p-4 rounded-xl border-l-4 ${style.border} ${style.bg} backdrop-blur-md`}>
-                  <div className={`flex items-center gap-2 font-semibold text-sm mb-2 ${style.color}`}>
-                    <span>{style.icon}</span>
-                    <span>{style.title}</span>
+                <div
+                  className={`my-4 p-4 rounded-xl border border-l-4 ${style.border} ${style.bg} backdrop-blur-md shadow-sm`}
+                >
+                  <div className="flex items-center gap-2.5 font-semibold text-sm mb-2">
+                    <div
+                      className={`w-6 h-6 rounded-lg flex items-center justify-center shrink-0 ${style.iconBg} ${style.iconColor}`}
+                    >
+                      <Icon className="w-3.5 h-3.5" />
+                    </div>
+                    <span className={`tracking-wide font-bold ${style.titleColor}`}>
+                      {customTitle || style.title}
+                    </span>
                   </div>
-                  <div className="text-neutral-300 text-sm leading-relaxed">{children}</div>
+                  <div className="text-neutral-200 text-sm leading-relaxed prose-p:my-1">
+                    {cleanedChildren}
+                  </div>
                 </div>
               );
             }

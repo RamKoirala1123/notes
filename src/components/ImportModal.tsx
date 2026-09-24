@@ -46,6 +46,7 @@ export const ImportModal: React.FC<ImportModalProps> = ({ isOpen, onClose, onBat
           slug,
           content: body,
           tags: combinedTags,
+          folder: frontmatter.folder,
           created_at: frontmatter.date || new Date(file.lastModified).toISOString(),
           updated_at: new Date().toISOString(),
           is_published: false,

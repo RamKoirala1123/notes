@@ -73,6 +73,7 @@ export function parseFrontmatter(rawContent: string): { frontmatter: NoteFrontma
     if (key === "title") frontmatter.title = value;
     else if (key === "slug") frontmatter.slug = value;
     else if (key === "date") frontmatter.date = value;
+    else if (key === "folder") frontmatter.folder = value;
     else if (key === "tags") {
       // Parse array like ["tag1", "tag2"] or comma list
       if (value.startsWith("[") && value.endsWith("]")) {
@@ -138,12 +139,13 @@ export function extractExcerpt(content: string, maxLength: number = 140): string
  */
 export function formatNoteToMarkdown(note: Note): string {
   const tagsFormatted = JSON.stringify(note.tags);
+  const folderLine = note.folder ? `folder: "${note.folder.replace(/"/g, '\\"')}"\n` : "";
   const frontmatter = `---
 title: "${note.title.replace(/"/g, '\\"')}"
 slug: "${note.slug}"
 date: "${note.created_at}"
 tags: ${tagsFormatted}
----
+${folderLine}---
 
 `;
   const { body } = parseFrontmatter(note.content);
@@ -163,4 +165,19 @@ export function downloadFile(filename: string, content: string, mimeType: string
   a.click();
   document.body.removeChild(a);
   URL.revokeObjectURL(url);
+}
+
+/**
+ * Toggle the checked state of a task list item at a given zero-based index in markdown content.
+ */
+export function toggleTaskInContent(content: string, taskIndex: number, checked: boolean): string {
+  let currentIndex = 0;
+  return content.replace(/(^|\n)(\s*[-*+]\s+\[)[ xX](\]\s*)/g, (match, prefix, before, after) => {
+    if (currentIndex === taskIndex) {
+      currentIndex++;
+      return `${prefix}${before}${checked ? "x" : " "}${after}`;
+    }
+    currentIndex++;
+    return match;
+  });
 }

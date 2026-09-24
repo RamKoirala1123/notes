@@ -14,6 +14,9 @@ export class MyNotesDatabase extends Dexie {
       artifacts: "++id, &sha256, note_id",
       todos: "++id, completed, priority, *tags, updated_at",
     });
+    this.version(3).stores({
+      notes: "++id, &slug, *tags, updated_at, is_published, folder",
+    });
   }
 }
 
