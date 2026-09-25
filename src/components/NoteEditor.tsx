@@ -31,6 +31,7 @@ import {
   Code2,
   Minus,
   SlidersHorizontal,
+  MoreVertical,
 } from "lucide-react";
 
 interface NoteEditorProps {
@@ -62,6 +63,7 @@ export const NoteEditor: React.FC<NoteEditorProps> = ({
   const [tags, setTags] = useState<string[]>(note.tags);
   const [folder, setFolder] = useState<string | undefined>(note.folder);
   const [isFolderMenuOpen, setIsFolderMenuOpen] = useState(false);
+  const [isMoreMenuOpen, setIsMoreMenuOpen] = useState(false);
 
   // Notion-style Slash Command Menu state (Phase 2)
   const [isSlashOpen, setIsSlashOpen] = useState(false);
@@ -1260,20 +1262,20 @@ export const NoteEditor: React.FC<NoteEditorProps> = ({
   return (
     <div className="flex-1 flex flex-col h-full bg-[#0a0a0c] text-neutral-100 overflow-hidden">
       {/* Zen Slim Header Bar */}
-      <div className="h-12 border-b border-white/[0.06] bg-[#0c0d10]/70 backdrop-blur-xl px-5 sm:px-8 flex items-center justify-between shrink-0 select-none">
+      <div className="h-12 border-b border-white/[0.06] bg-[#0c0d10]/70 backdrop-blur-xl px-2.5 sm:px-8 flex items-center justify-between shrink-0 select-none">
         {/* Left: Breadcrumbs & Status */}
-        <div className="flex items-center gap-2.5 text-xs text-neutral-400">
+        <div className="flex items-center gap-1 sm:gap-2.5 text-xs text-neutral-400 min-w-0 shrink">
           {/* Folder Dropdown Selector */}
           <div className="relative inline-flex items-center" onClick={(e) => e.stopPropagation()}>
             <button
               type="button"
               onClick={() => setIsFolderMenuOpen((prev) => !prev)}
-              className="inline-flex items-center gap-1.5 px-2 py-1 rounded-md hover:bg-white/[0.05] text-neutral-400 hover:text-neutral-200 transition-colors"
+              className="inline-flex items-center gap-1 px-1.5 sm:px-2 py-1 rounded-md hover:bg-white/[0.05] text-neutral-400 hover:text-neutral-200 transition-colors text-xs"
               title="Change Folder"
             >
-              <Folder className="w-3.5 h-3.5 text-neutral-400" />
-              <span className="font-medium text-neutral-300">{folder || "General"}</span>
-              <ChevronDown className="w-3 h-3 text-neutral-500" />
+              <Folder className="w-3.5 h-3.5 text-neutral-400 shrink-0" />
+              <span className="font-medium text-neutral-300 truncate max-w-[70px] sm:max-w-none">{folder || "General"}</span>
+              <ChevronDown className="w-3 h-3 text-neutral-500 shrink-0" />
             </button>
 
             {isFolderMenuOpen && (
@@ -1314,114 +1316,170 @@ export const NoteEditor: React.FC<NoteEditorProps> = ({
             )}
           </div>
 
-          <span className="text-neutral-700">/</span>
-          <span className="text-neutral-500 font-mono text-[11px] truncate max-w-[160px] sm:max-w-[220px]">
+          <span className="text-neutral-700 hidden sm:inline">/</span>
+          <span className="text-neutral-500 font-mono text-[11px] truncate max-w-[100px] sm:max-w-[220px] hidden sm:inline">
             {slug}
           </span>
 
           {/* Saved Status Indicator */}
-          <div className="ml-1 sm:ml-2 flex items-center">
+          <div className="ml-0.5 sm:ml-2 flex items-center shrink-0">
             {isSaved ? (
               <span className="inline-flex items-center gap-1 text-[11px] text-neutral-500">
-                <CheckCircle2 className="w-3.5 h-3.5 text-emerald-500/70" />
-                <span>Saved</span>
+                <CheckCircle2 className="w-3.5 h-3.5 text-emerald-500/70 shrink-0" />
+                <span className="hidden sm:inline">Saved</span>
               </span>
             ) : (
               <button
                 onClick={handleManualSave}
                 title="Click to save (⌘S)"
-                className="inline-flex items-center gap-1.5 text-[11px] text-amber-400/90 hover:text-amber-300 px-2 py-0.5 rounded-md hover:bg-amber-500/10 transition-colors"
+                className="inline-flex items-center gap-1 text-[11px] text-amber-400/90 hover:text-amber-300 px-1.5 py-0.5 rounded-md hover:bg-amber-500/10 transition-colors"
               >
-                <span className="w-1.5 h-1.5 rounded-full bg-amber-400 animate-pulse" />
-                <span>Unsaved changes</span>
+                <span className="w-1.5 h-1.5 rounded-full bg-amber-400 animate-pulse shrink-0" />
+                <span className="hidden sm:inline">Unsaved</span>
               </button>
             )}
           </div>
         </div>
 
         {/* Right: View Mode Toggle & Subtle Actions */}
-        <div className="flex items-center gap-2">
-          {/* Hide/Unhide Formatting Toolbar Toggle */}
-          {viewMode !== "preview" && (
-            <button
-              onClick={toggleToolbar}
-              className={`px-2.5 py-1 rounded-md text-xs font-medium flex items-center gap-1.5 transition-all border ${showToolbar
-                ? "bg-white/[0.1] text-white border-white/[0.18] shadow-xs"
-                : "bg-white/[0.03] text-neutral-400 hover:text-neutral-200 border-white/[0.06] hover:bg-white/[0.06]"
-                }`}
-              title={showToolbar ? "Hide Formatting Toolbar" : "Show Formatting Toolbar"}
-            >
-              <SlidersHorizontal className="w-3.5 h-3.5" />
-              <span className="hidden sm:inline">{showToolbar ? "Hide Toolbar" : "Toolbar"}</span>
-            </button>
-          )}
-
+        <div className="flex items-center gap-1 sm:gap-2 shrink-0">
           {/* Segmented View Mode (Edit & Preview on Mobile, Split on Desktop) */}
-          <div className="flex items-center p-0.5 rounded-lg bg-white/[0.04] border border-white/[0.06] text-xs">
+          <div className="flex items-center p-0.5 rounded-lg bg-white/[0.06] border border-white/[0.08] text-xs shadow-xs shrink-0">
             <button
               onClick={() => setViewMode("edit")}
-              className={`px-2.5 py-1 rounded-md flex items-center gap-1.5 transition-all text-xs ${
+              className={`px-2.5 py-1 sm:px-3 sm:py-1 rounded-md flex items-center gap-1.5 transition-all text-xs font-medium ${
                 viewMode === "edit"
-                  ? "bg-white/[0.1] text-white font-medium shadow-xs"
+                  ? "bg-indigo-600 text-white shadow-xs"
                   : "text-neutral-400 hover:text-neutral-200"
               }`}
               title="Edit Mode"
             >
-              <Edit3 className="w-3.5 h-3.5" />
+              <Edit3 className="w-3.5 h-3.5 shrink-0" />
               <span>Edit</span>
             </button>
 
             {/* Split View Button (Hidden on Mobile) */}
             <button
               onClick={() => setViewMode("split")}
-              className={`hidden md:flex px-2.5 py-1 rounded-md items-center gap-1.5 transition-all text-xs ${
+              className={`hidden md:flex px-2.5 py-1 rounded-md items-center gap-1.5 transition-all text-xs font-medium ${
                 viewMode === "split"
-                  ? "bg-white/[0.1] text-white font-medium shadow-xs"
+                  ? "bg-indigo-600 text-white shadow-xs"
                   : "text-neutral-400 hover:text-neutral-200"
               }`}
               title="Split View Mode"
             >
-              <Columns className="w-3.5 h-3.5" />
+              <Columns className="w-3.5 h-3.5 shrink-0" />
               <span>Split</span>
             </button>
 
             <button
               onClick={onTogglePreview || (() => setViewMode(viewMode === "preview" ? (isMobileScreen ? "edit" : "split") : "preview"))}
-              className={`px-2.5 py-1 rounded-md flex items-center gap-1.5 transition-all text-xs ${
+              className={`px-2.5 py-1 sm:px-3 sm:py-1 rounded-md flex items-center gap-1.5 transition-all text-xs font-medium ${
                 viewMode === "preview"
-                  ? "bg-white/[0.1] text-white font-medium shadow-xs"
+                  ? "bg-indigo-600 text-white shadow-xs"
                   : "text-neutral-400 hover:text-neutral-200"
               }`}
               title="Preview Mode (Ctrl+P)"
             >
-              <Eye className="w-3.5 h-3.5" />
+              <Eye className="w-3.5 h-3.5 shrink-0" />
               <span>Preview</span>
             </button>
           </div>
 
-          <div className="h-4 w-px bg-white/[0.08] mx-1" />
+          {/* Desktop Toolbar Toggle */}
+          {viewMode !== "preview" && (
+            <button
+              onClick={toggleToolbar}
+              className={`hidden sm:flex p-1.5 sm:px-2.5 sm:py-1 rounded-md text-xs font-medium items-center gap-1.5 transition-all border ${showToolbar
+                ? "bg-white/[0.1] text-white border-white/[0.18] shadow-xs"
+                : "bg-white/[0.03] text-neutral-400 hover:text-neutral-200 border-white/[0.06] hover:bg-white/[0.06]"
+                }`}
+              title={showToolbar ? "Hide Formatting Toolbar" : "Show Formatting Toolbar"}
+            >
+              <SlidersHorizontal className="w-3.5 h-3.5" />
+              <span className="hidden md:inline">{showToolbar ? "Hide Toolbar" : "Toolbar"}</span>
+            </button>
+          )}
 
-          {/* Subtle Publish Button */}
-          <button
-            onClick={() => onOpenPublish(note)}
-            className={`px-2.5 py-1 rounded-lg text-xs font-medium flex items-center gap-1.5 transition-colors border ${note.is_published
-              ? "border-emerald-500/30 bg-emerald-950/30 text-emerald-300 hover:bg-emerald-900/40"
-              : "border-white/[0.06] bg-white/[0.03] text-neutral-400 hover:text-neutral-200 hover:bg-white/[0.06]"
-              }`}
-            title={note.is_published ? "Manage Published Note" : "Publish Note to Web"}
-          >
-            <Globe className="w-3.5 h-3.5" />
-            <span className="hidden sm:inline">{note.is_published ? "Published" : "Publish"}</span>
-          </button>
+          {/* Desktop Divider */}
+          <div className="h-4 w-px bg-white/[0.08] mx-0.5 sm:mx-1 hidden sm:block" />
 
-          {/* Subtle Export Button */}
-          <button
-            onClick={() => downloadFile(`${note.slug}.md`, formatNoteToMarkdown(note))}
-            className="p-1.5 rounded-lg border border-white/[0.06] bg-white/[0.03] text-neutral-400 hover:text-neutral-200 hover:bg-white/[0.06] transition-colors"
-            title="Download .md File"
-          >
-            <Download className="w-3.5 h-3.5" />
-          </button>
+          {/* Desktop Secondary Actions (Publish & Export) */}
+          <div className="hidden sm:flex items-center gap-1">
+            <button
+              onClick={() => onOpenPublish(note)}
+              className={`p-1.5 sm:px-2.5 sm:py-1 rounded-lg text-xs font-medium flex items-center gap-1.5 transition-colors border ${note.is_published
+                ? "border-emerald-500/30 bg-emerald-950/30 text-emerald-300 hover:bg-emerald-900/40"
+                : "border-white/[0.06] bg-white/[0.03] text-neutral-400 hover:text-neutral-200 hover:bg-white/[0.06]"
+                }`}
+              title={note.is_published ? "Manage Published Note" : "Publish Note to Web"}
+            >
+              <Globe className="w-3.5 h-3.5" />
+              <span className="hidden md:inline">{note.is_published ? "Published" : "Publish"}</span>
+            </button>
+
+            <button
+              onClick={() => downloadFile(`${note.slug}.md`, formatNoteToMarkdown(note))}
+              className="p-1.5 rounded-lg border border-white/[0.06] bg-white/[0.03] text-neutral-400 hover:text-neutral-200 hover:bg-white/[0.06] transition-colors"
+              title="Download .md File"
+            >
+              <Download className="w-3.5 h-3.5" />
+            </button>
+          </div>
+
+          {/* Mobile More Options Dropdown (...) */}
+          <div className="relative sm:hidden" onClick={(e) => e.stopPropagation()}>
+            <button
+              type="button"
+              onClick={() => setIsMoreMenuOpen((prev) => !prev)}
+              className="p-1.5 rounded-lg border border-white/[0.08] bg-white/[0.04] text-neutral-300 hover:text-white hover:bg-white/[0.08] transition-colors"
+              title="More Actions"
+            >
+              <MoreVertical className="w-4 h-4" />
+            </button>
+
+            {isMoreMenuOpen && (
+              <div className="absolute right-0 top-full mt-1.5 w-48 bg-neutral-900 border border-neutral-800 rounded-xl shadow-2xl z-50 p-1 text-xs backdrop-blur-xl">
+                {viewMode !== "preview" && (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      toggleToolbar();
+                      setIsMoreMenuOpen(false);
+                    }}
+                    className="w-full text-left px-3 py-2 rounded-lg hover:bg-neutral-800 text-neutral-300 flex items-center gap-2 transition-colors"
+                  >
+                    <SlidersHorizontal className="w-3.5 h-3.5 text-neutral-400" />
+                    <span>{showToolbar ? "Hide Formatting Toolbar" : "Show Formatting Toolbar"}</span>
+                  </button>
+                )}
+
+                <button
+                  type="button"
+                  onClick={() => {
+                    onOpenPublish(note);
+                    setIsMoreMenuOpen(false);
+                  }}
+                  className="w-full text-left px-3 py-2 rounded-lg hover:bg-neutral-800 text-neutral-300 flex items-center gap-2 transition-colors"
+                >
+                  <Globe className="w-3.5 h-3.5 text-neutral-400" />
+                  <span>{note.is_published ? "Published (Manage)" : "Publish to Web"}</span>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => {
+                    downloadFile(`${note.slug}.md`, formatNoteToMarkdown(note));
+                    setIsMoreMenuOpen(false);
+                  }}
+                  className="w-full text-left px-3 py-2 rounded-lg hover:bg-neutral-800 text-neutral-300 flex items-center gap-2 transition-colors"
+                >
+                  <Download className="w-3.5 h-3.5 text-neutral-400" />
+                  <span>Download .md File</span>
+                </button>
+              </div>
+            )}
+          </div>
         </div>
       </div>
 
