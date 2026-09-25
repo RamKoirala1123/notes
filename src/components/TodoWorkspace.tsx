@@ -444,7 +444,7 @@ export const TodoWorkspace: React.FC<TodoWorkspaceProps> = ({
   return (
     <div className="flex-1 flex flex-col h-full bg-neutral-950 text-neutral-100 overflow-hidden font-sans">
       {/* 1. Sleek Tab Strip for Todo Lists */}
-      <div className="border-b border-white/[0.06] bg-neutral-950 px-4 pt-2 flex items-center justify-between shrink-0">
+      <div className="border-b border-white/[0.06] bg-neutral-950 px-4 pt-2 hidden md:flex items-center justify-between shrink-0">
         <div className="flex items-center gap-1 overflow-x-auto scrollbar-none">
           {todoLists.map((list) => {
             const isCurrent = list.id === effectiveListId;
