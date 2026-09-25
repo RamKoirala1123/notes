@@ -513,6 +513,64 @@ export const NoteEditor: React.FC<NoteEditorProps> = ({
     }, 10);
   };
 
+  const handlePaste = (e: React.ClipboardEvent<HTMLTextAreaElement>) => {
+    const text = e.clipboardData.getData("text");
+    if (!text) return;
+
+    const trimmed = text.trim();
+    // Check if the pasted string is a valid web link (http://, https://, or www.)
+    const isUrl = (() => {
+      if (!trimmed || /\s/.test(trimmed)) return false;
+      try {
+        const urlCandidate = trimmed.startsWith("www.") ? `https://${trimmed}` : trimmed;
+        const parsed = new URL(urlCandidate);
+        return parsed.protocol === "http:" || parsed.protocol === "https:";
+      } catch {
+        return false;
+      }
+    })();
+
+    if (isUrl) {
+      e.preventDefault();
+      const textarea = textareaRef.current;
+      if (!textarea) return;
+
+      const fullUrl = trimmed.startsWith("www.") ? `https://${trimmed}` : trimmed;
+      const start = textarea.selectionStart;
+      const end = textarea.selectionEnd;
+      const selected = textarea.value.substring(start, end).trim();
+
+      // If user highlighted text, create [selectedText](fullUrl).
+      // If no text selected, create [fullUrl](fullUrl) so it's a clickable link in preview mode.
+      const linkMarkdown = selected.length > 0
+        ? `[${selected}](${fullUrl})`
+        : `[${fullUrl}](${fullUrl})`;
+
+      let success = false;
+      try {
+        success = document.execCommand("insertText", false, linkMarkdown);
+      } catch {
+        success = false;
+      }
+
+      if (!success) {
+        const val = textarea.value;
+        const newContent = val.substring(0, start) + linkMarkdown + val.substring(end);
+        setContent(newContent);
+      } else {
+        setContent(textarea.value);
+      }
+
+      setIsSaved(false);
+      const newCursor = start + linkMarkdown.length;
+      setTimeout(() => {
+        textarea.focus();
+        textarea.setSelectionRange(newCursor, newCursor);
+        handleContentOrSelectionChange();
+      }, 0);
+    }
+  };
+
   const handleToggleList = (type: "bullet" | "number" | "task") => {
     const textarea = textareaRef.current;
     if (!textarea) return;
@@ -1581,6 +1639,7 @@ export const NoteEditor: React.FC<NoteEditorProps> = ({
                 }}
                 onClick={handleContentOrSelectionChange}
                 onMouseUp={handleContentOrSelectionChange}
+                onPaste={handlePaste}
                 onKeyUp={(e) => {
                   if (
                     isSlashOpenRef.current &&
@@ -1668,6 +1727,7 @@ export const NoteEditor: React.FC<NoteEditorProps> = ({
                 }}
                 onClick={handleContentOrSelectionChange}
                 onMouseUp={handleContentOrSelectionChange}
+                onPaste={handlePaste}
                 onKeyUp={(e) => {
                   if (
                     isSlashOpenRef.current &&

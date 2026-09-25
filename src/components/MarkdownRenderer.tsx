@@ -8,7 +8,7 @@ import rehypeKatex from "rehype-katex";
 import rehypeRaw from "rehype-raw";
 import { processWikilinks, parseFrontmatter } from "@/lib/markdown";
 
-import { Info, Lightbulb, AlertTriangle, Bookmark, ShieldAlert } from "lucide-react";
+import { Info, Lightbulb, AlertTriangle, Bookmark, ShieldAlert, ExternalLink } from "lucide-react";
 
 // Import KaTeX styles
 import "katex/dist/katex.min.css";
@@ -316,19 +316,35 @@ export const MarkdownRenderer: React.FC<MarkdownRendererProps> = ({
             );
           },
 
-          // Custom link renderer for internal wikilinks / routing
-          a({ href, children }) {
-            const isInternal = href?.startsWith("/") || href?.startsWith("#");
+          // Custom link renderer for internal wikilinks / routing and web links
+          a({ href, children, ...props }: any) {
+            let targetHref = href || "";
+            if (targetHref.startsWith("www.")) {
+              targetHref = `https://${targetHref}`;
+            }
+            const isInternal = targetHref.startsWith("/") || targetHref.startsWith("#");
             if (isInternal) {
               return (
-                <a href={href} className="text-indigo-400 hover:text-indigo-300 underline underline-offset-4 decoration-indigo-500/50 transition-colors font-medium">
+                <a
+                  href={targetHref}
+                  className="text-indigo-400 hover:text-indigo-300 underline underline-offset-4 decoration-indigo-500/50 transition-colors font-medium inline-flex items-center gap-1"
+                  {...props}
+                >
                   {children}
                 </a>
               );
             }
             return (
-              <a href={href} target="_blank" rel="noopener noreferrer" className="text-indigo-400 hover:text-indigo-300 underline underline-offset-4 decoration-indigo-500/50 transition-colors">
-                {children}
+              <a
+                href={targetHref}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="text-indigo-400 hover:text-indigo-300 underline underline-offset-4 decoration-indigo-500/50 transition-colors inline-flex items-center gap-1 group/link cursor-pointer"
+                title={`Open ${targetHref} in new tab`}
+                {...props}
+              >
+                <span>{children}</span>
+                <ExternalLink className="w-3 h-3 opacity-60 group-hover/link:opacity-100 transition-opacity shrink-0 inline" />
               </a>
             );
           },

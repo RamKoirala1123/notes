@@ -11,13 +11,25 @@ export interface Note {
   folder?: string;
 }
 
-export interface Todo {
+export interface TodoList {
   id?: number;
   title: string;
+  created_at: string;
+  updated_at: string;
+  color?: string;
+  icon?: string;
+}
+
+export interface Todo {
+  id?: number;
+  list_id?: number;
+  title: string;
+  description?: string;
   completed: boolean;
   priority: "low" | "medium" | "high";
   due_date?: string;
   tags: string[];
+  order?: number;
   created_at: string;
   updated_at: string;
 }

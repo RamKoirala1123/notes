@@ -3,7 +3,7 @@
 import React, { useState, useEffect, useRef } from "react";
 import { useLiveQuery } from "dexie-react-hooks";
 import { db, ensureSeeded } from "@/lib/db";
-import { Note } from "@/lib/types";
+import { Note, TodoList } from "@/lib/types";
 import { generateSlug, generateUniqueSlug, formatNoteToMarkdown, downloadFile } from "@/lib/markdown";
 import { Sidebar } from "@/components/Sidebar";
 import { NoteEditor } from "@/components/NoteEditor";
@@ -12,7 +12,7 @@ import { PublishModal } from "@/components/PublishModal";
 import { ImportModal } from "@/components/ImportModal";
 import { SettingsModal } from "@/components/SettingsModal";
 import { QuickSearchModal } from "@/components/QuickSearchModal";
-import { Menu, Sparkles } from "lucide-react";
+import { Menu, Sparkles, FileText, CheckSquare, Search } from "lucide-react";
 
 export default function HomePage() {
   const [activeView, setActiveView] = useState<"notes" | "todos">("notes");
@@ -48,9 +48,12 @@ export default function HomePage() {
     ensureSeeded();
   }, []);
 
-  // Fetch live notes & todos from IndexedDB
+  // Fetch live notes, todos & todoLists from IndexedDB
   const notes = useLiveQuery(() => db.notes.orderBy("updated_at").reverse().toArray(), []) || [];
   const todos = useLiveQuery(() => db.todos.orderBy("updated_at").reverse().toArray(), []) || [];
+  const todoLists = useLiveQuery(() => db.todoLists.orderBy("updated_at").reverse().toArray(), []) || [];
+
+  const [activeTodoListId, setActiveTodoListId] = useState<number | null>(null);
 
   // Set initial active note
   useEffect(() => {
@@ -58,6 +61,13 @@ export default function HomePage() {
       setActiveNoteId(notes[0].id || null);
     }
   }, [notes]);
+
+  // Set initial active todo list
+  useEffect(() => {
+    if (todoLists.length > 0 && (activeTodoListId === null || !todoLists.some((l) => l.id === activeTodoListId))) {
+      setActiveTodoListId(todoLists[0].id || null);
+    }
+  }, [todoLists, activeTodoListId]);
 
   const activeNote = notes.find((n) => n.id === activeNoteId) || notes[0];
   const pendingTodosCount = todos.filter((t) => !t.completed).length;
@@ -149,6 +159,58 @@ export default function HomePage() {
     } catch (err) {
       console.error("Failed to create note:", err);
       showToast("Error creating note. Please try again.");
+    }
+  };
+
+  const handleCreateTodoList = async (title: string): Promise<number | void> => {
+    const trimmed = title.trim();
+    if (!trimmed) return;
+    try {
+      const id = await db.todoLists.add({
+        title: trimmed,
+        created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString(),
+      });
+      showToast(`Todo list "${trimmed}" created!`);
+      setActiveTodoListId(id);
+      return id;
+    } catch (err) {
+      console.error("Failed to create todo list:", err);
+      showToast("Failed to create todo list.");
+    }
+  };
+
+  const handleDeleteTodoList = async (id: number) => {
+    const target = todoLists.find((l) => l.id === id);
+    const listTitle = target ? target.title : "this list";
+    if (confirm(`Delete todo list "${listTitle}" and all its tasks?`)) {
+      try {
+        await db.todoLists.delete(id);
+        const tasksToDelete = todos.filter((t) => t.list_id === id).map((t) => t.id!).filter(Boolean);
+        if (tasksToDelete.length > 0) {
+          await db.todos.bulkDelete(tasksToDelete);
+        }
+        const remaining = todoLists.filter((l) => l.id !== id);
+        setActiveTodoListId(remaining.length > 0 ? remaining[0].id || null : null);
+        showToast(`Todo list "${listTitle}" deleted.`);
+      } catch (err) {
+        console.error("Failed to delete todo list:", err);
+        showToast("Failed to delete todo list.");
+      }
+    }
+  };
+
+  const handleRenameTodoList = async (id: number, newTitle: string) => {
+    const trimmed = newTitle.trim();
+    if (!trimmed) return;
+    try {
+      await db.todoLists.update(id, {
+        title: trimmed,
+        updated_at: new Date().toISOString(),
+      });
+      showToast(`Renamed list to "${trimmed}"`);
+    } catch (err) {
+      console.error("Failed to rename todo list:", err);
     }
   };
 
@@ -318,16 +380,93 @@ export default function HomePage() {
         folders={allFolderNames}
         onCreateFolder={handleCreateFolder}
         onDeleteFolder={handleDeleteFolder}
+        todoLists={todoLists}
+        activeTodoListId={activeTodoListId}
+        onSelectTodoList={(id) => {
+          setActiveTodoListId(id);
+          setActiveView("todos");
+        }}
+        onCreateTodoList={handleCreateTodoList}
+        onDeleteTodoList={handleDeleteTodoList}
+        todos={todos}
       />
 
       {/* Main Workspace (Notes or Todos) */}
       <main className="flex-1 flex flex-col h-full overflow-hidden">
+        {/* Top-Level Mode Tab Switcher: Notes vs Todos */}
+        <div className="h-10 px-4 bg-neutral-950 border-b border-white/[0.06] flex items-center justify-between shrink-0 select-none z-10">
+          <div className="flex items-center gap-1.5">
+            {/* Mobile Sidebar Toggle Button */}
+            <button
+              onClick={() => setIsMobileOpen(true)}
+              className="md:hidden p-1.5 rounded-lg hover:bg-white/[0.08] text-neutral-400 hover:text-white mr-1"
+              title="Open Sidebar"
+            >
+              <Menu className="w-4 h-4" />
+            </button>
+
+            {/* Notes Tab */}
+            <button
+              onClick={() => setActiveView("notes")}
+              className={`flex items-center gap-2 px-3 py-1 rounded-md text-xs font-medium transition-all ${
+                activeView === "notes"
+                  ? "bg-white/[0.1] text-white shadow-xs font-semibold"
+                  : "text-neutral-400 hover:text-neutral-200 hover:bg-white/[0.04]"
+              }`}
+            >
+              <FileText className="w-3.5 h-3.5" />
+              <span>Notes</span>
+              <span className="text-[10px] font-mono opacity-60">({notes.length})</span>
+            </button>
+
+            {/* Todos Tab */}
+            <button
+              onClick={() => setActiveView("todos")}
+              className={`flex items-center gap-2 px-3 py-1 rounded-md text-xs font-medium transition-all ${
+                activeView === "todos"
+                  ? "bg-indigo-600/20 text-indigo-300 border border-indigo-500/30 shadow-xs font-semibold"
+                  : "text-neutral-400 hover:text-neutral-200 hover:bg-white/[0.04]"
+              }`}
+            >
+              <CheckSquare className="w-3.5 h-3.5 text-indigo-400" />
+              <span>Todos</span>
+              {pendingTodosCount > 0 ? (
+                <span className="text-[10px] font-mono text-indigo-300 bg-indigo-500/30 px-1.5 py-0.2 rounded-full font-bold">
+                  {pendingTodosCount}
+                </span>
+              ) : (
+                <span className="text-[10px] font-mono opacity-60">({todos.length})</span>
+              )}
+            </button>
+          </div>
+
+          {/* Quick Search Shortcut Trigger */}
+          <button
+            onClick={() => setIsQuickSearchOpen(true)}
+            className="hidden sm:flex items-center gap-1.5 px-2.5 py-1 rounded-md text-[11px] text-neutral-400 hover:text-neutral-200 bg-white/[0.03] border border-white/[0.06] hover:bg-white/[0.06] transition-colors"
+            title="Quick Search (⌘K or /)"
+          >
+            <Search className="w-3 h-3 text-neutral-500" />
+            <span>Search</span>
+            <kbd className="px-1.5 py-0.2 rounded bg-neutral-900 border border-neutral-800 text-[10px] font-mono text-neutral-400">
+              ⌘K
+            </kbd>
+          </button>
+        </div>
+
         {activeView === "todos" ? (
           <TodoWorkspace
             todos={todos}
+            todoLists={todoLists}
+            activeTodoListId={activeTodoListId}
+            onSelectTodoList={setActiveTodoListId}
+            onCreateTodoList={handleCreateTodoList}
+            onDeleteTodoList={handleDeleteTodoList}
+            onRenameTodoList={handleRenameTodoList}
             selectedTag={selectedTag}
             searchQuery={searchQuery}
             onSelectTag={setSelectedTag}
+            onSwitchToNotes={() => setActiveView("notes")}
           />
         ) : activeNote ? (
           <NoteEditor
