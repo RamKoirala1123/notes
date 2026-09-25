@@ -32,6 +32,40 @@ export function generateSlug(title: string): string {
 }
 
 /**
+ * Generate a safe, unique slug from a title, avoiding duplicates in existingSlugs.
+ */
+export function generateUniqueSlug(
+  title: string,
+  existingSlugs: string[] = [],
+  currentSlug?: string
+): string {
+  const base = generateSlug(title);
+  if (currentSlug && base === currentSlug) {
+    return currentSlug;
+  }
+
+  const existing = new Set(
+    existingSlugs.filter((s): s is string => Boolean(s && s !== currentSlug))
+  );
+
+  if (!existing.has(base)) {
+    return base;
+  }
+
+  // If base ends with a number (e.g. untitled-note-4), extract prefix and number
+  const match = base.match(/^(.*?)-(\d+)$/);
+  const prefix = match ? match[1] : base;
+  let counter = match ? parseInt(match[2], 10) + 1 : 1;
+
+  let candidate = `${prefix}-${counter}`;
+  while (existing.has(candidate)) {
+    counter++;
+    candidate = `${prefix}-${counter}`;
+  }
+  return candidate;
+}
+
+/**
  * Extract title from Markdown content if not provided in frontmatter.
  */
 export function extractTitle(content: string, defaultTitle: string = "Untitled Note"): string {
@@ -73,6 +107,7 @@ export function parseFrontmatter(rawContent: string): { frontmatter: NoteFrontma
     if (key === "title") frontmatter.title = value;
     else if (key === "slug") frontmatter.slug = value;
     else if (key === "date") frontmatter.date = value;
+    else if (key === "folder") frontmatter.folder = value;
     else if (key === "tags") {
       // Parse array like ["tag1", "tag2"] or comma list
       if (value.startsWith("[") && value.endsWith("]")) {
@@ -138,12 +173,13 @@ export function extractExcerpt(content: string, maxLength: number = 140): string
  */
 export function formatNoteToMarkdown(note: Note): string {
   const tagsFormatted = JSON.stringify(note.tags);
+  const folderLine = note.folder ? `folder: "${note.folder.replace(/"/g, '\\"')}"\n` : "";
   const frontmatter = `---
 title: "${note.title.replace(/"/g, '\\"')}"
 slug: "${note.slug}"
 date: "${note.created_at}"
 tags: ${tagsFormatted}
----
+${folderLine}---
 
 `;
   const { body } = parseFrontmatter(note.content);
@@ -163,4 +199,19 @@ export function downloadFile(filename: string, content: string, mimeType: string
   a.click();
   document.body.removeChild(a);
   URL.revokeObjectURL(url);
+}
+
+/**
+ * Toggle the checked state of a task list item at a given zero-based index in markdown content.
+ */
+export function toggleTaskInContent(content: string, taskIndex: number, checked: boolean): string {
+  let currentIndex = 0;
+  return content.replace(/(^|\n)(\s*[-*+]\s+\[)[ xX](\]\s*)/g, (match, prefix, before, after) => {
+    if (currentIndex === taskIndex) {
+      currentIndex++;
+      return `${prefix}${before}${checked ? "x" : " "}${after}`;
+    }
+    currentIndex++;
+    return match;
+  });
 }
