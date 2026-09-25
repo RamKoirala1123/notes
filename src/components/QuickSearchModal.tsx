@@ -28,7 +28,7 @@ interface QuickSearchModalProps {
   onCreateNewNote: (customTitle?: string) => void;
   onTogglePreview: () => void;
   onSaveCurrentNote: () => void;
-  onChangeView: (view: "notes" | "todos") => void;
+  onChangeView: (view: "notes" | "todos" | "tags") => void;
   onOpenImport: () => void;
   onExportAll: () => void;
   onOpenSettings: () => void;
@@ -131,6 +131,17 @@ export const QuickSearchModal: React.FC<QuickSearchModalProps> = ({
       icon: <CheckSquare className="w-4 h-4 text-purple-400" />,
       perform: () => {
         onChangeView("todos");
+        onClose();
+      },
+    },
+    {
+      type: "action",
+      id: "action-tags",
+      title: "Go to Tags Explorer",
+      subtitle: "Browse and filter content by tags",
+      icon: <Tag className="w-4 h-4 text-amber-400" />,
+      perform: () => {
+        onChangeView("tags");
         onClose();
       },
     },

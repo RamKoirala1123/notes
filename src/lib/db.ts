@@ -81,87 +81,39 @@ export async function ensureSeeded(): Promise<void> {
     const notesCount = await db.notes.count();
     if (notesCount === 0) {
       await db.notes.bulkAdd(INITIAL_DEMO_NOTES);
-      console.log("Database seeded with demo notes.");
+      console.log("Database seeded with welcome note.");
     }
 
     const todoListsCount = await db.todoLists.count();
-    let homeworkId = 1;
-    let studyId = 2;
     if (todoListsCount === 0) {
-      homeworkId = await db.todoLists.add({
-        title: "Homework",
+      await db.todoLists.add({
+        title: "My Tasks",
         created_at: new Date().toISOString(),
         updated_at: new Date().toISOString(),
       });
-      studyId = await db.todoLists.add({
-        title: "Study",
-        created_at: new Date().toISOString(),
-        updated_at: new Date().toISOString(),
-      });
-    } else {
-      const lists = await db.todoLists.toArray();
-      if (lists.length > 0) homeworkId = lists[0].id || 1;
-      if (lists.length > 1) studyId = lists[1].id || 2;
     }
 
-    const todosCount = await db.todos.count();
-    if (todosCount === 0) {
-      await db.todos.bulkAdd([
-        {
-          title: "Complete Math assignment exercises 1-15",
-          description: "Focus on quadratic equations and graph sketches from page 42.",
-          completed: false,
-          priority: "high",
-          list_id: homeworkId,
-          order: 0,
-          due_date: new Date(Date.now() + 86400000).toISOString().split("T")[0],
-          tags: ["math", "homework"],
-          created_at: new Date().toISOString(),
-          updated_at: new Date().toISOString(),
-        },
-        {
-          title: "Write essay draft on Renewable Energy",
-          description: "Include solar, wind, and geothermal comparisons with citations.",
-          completed: false,
-          priority: "medium",
-          list_id: homeworkId,
-          order: 1,
-          tags: ["english", "essay"],
-          created_at: new Date().toISOString(),
-          updated_at: new Date().toISOString(),
-        },
-        {
-          title: "Review Biology Chapter 4 flashcards",
-          description: "Cellular respiration, Krebs cycle, and mitochondrial ATP synthesis.",
-          completed: true,
-          priority: "medium",
-          list_id: studyId,
-          order: 0,
-          tags: ["biology", "exam"],
-          created_at: new Date().toISOString(),
-          updated_at: new Date().toISOString(),
-        },
-        {
-          title: "Practice Next.js Server Components & Turbopack",
-          description: "Experiment with async layout params, caching headers, and dynamic routes.",
-          completed: false,
-          priority: "high",
-          list_id: studyId,
-          order: 1,
-          tags: ["coding", "nextjs"],
-          created_at: new Date().toISOString(),
-          updated_at: new Date().toISOString(),
-        },
-      ]);
-      console.log("Database seeded with demo todos.");
-    }
+    // Automatically remove legacy demo todos if present in user browser storage
+    const legacyDemoTitles = [
+      "Complete Math assignment exercises 1-15",
+      "Write essay draft on Renewable Energy",
+      "Review Biology Chapter 4 flashcards",
+      "Practice Next.js Server Components & Turbopack",
+      "Deploy MyNotes Next.js to Vercel custom domain",
+      "Organize project notes using Wikilinks [[math-and-diagrams]]",
+      "Explore Markdown list auto-continuation feature",
+    ];
+
+    await db.todos
+      .filter((todo) => legacyDemoTitles.includes(todo.title))
+      .delete();
   } catch (err) {
     console.error("Failed to seed database:", err);
   }
 }
 
 /**
- * Reset database to initial demo state.
+ * Reset database to initial state.
  */
 export async function resetDatabaseToDemo(): Promise<void> {
   await db.notes.clear();
@@ -170,62 +122,9 @@ export async function resetDatabaseToDemo(): Promise<void> {
   await db.todoLists.clear();
   await db.notes.bulkAdd(INITIAL_DEMO_NOTES);
 
-  const homeworkId = await db.todoLists.add({
-    title: "Homework",
+  await db.todoLists.add({
+    title: "My Tasks",
     created_at: new Date().toISOString(),
     updated_at: new Date().toISOString(),
   });
-  const studyId = await db.todoLists.add({
-    title: "Study",
-    created_at: new Date().toISOString(),
-    updated_at: new Date().toISOString(),
-  });
-
-  await db.todos.bulkAdd([
-    {
-      title: "Complete Math assignment exercises 1-15",
-      description: "Focus on quadratic equations and graph sketches from page 42.",
-      completed: false,
-      priority: "high",
-      list_id: homeworkId,
-      order: 0,
-      due_date: new Date(Date.now() + 86400000).toISOString().split("T")[0],
-      tags: ["math", "homework"],
-      created_at: new Date().toISOString(),
-      updated_at: new Date().toISOString(),
-    },
-    {
-      title: "Write essay draft on Renewable Energy",
-      description: "Include solar, wind, and geothermal comparisons with citations.",
-      completed: false,
-      priority: "medium",
-      list_id: homeworkId,
-      order: 1,
-      tags: ["english", "essay"],
-      created_at: new Date().toISOString(),
-      updated_at: new Date().toISOString(),
-    },
-    {
-      title: "Review Biology Chapter 4 flashcards",
-      description: "Cellular respiration, Krebs cycle, and mitochondrial ATP synthesis.",
-      completed: true,
-      priority: "medium",
-      list_id: studyId,
-      order: 0,
-      tags: ["biology", "exam"],
-      created_at: new Date().toISOString(),
-      updated_at: new Date().toISOString(),
-    },
-    {
-      title: "Practice Next.js Server Components & Turbopack",
-      description: "Experiment with async layout params, caching headers, and dynamic routes.",
-      completed: false,
-      priority: "high",
-      list_id: studyId,
-      order: 1,
-      tags: ["coding", "nextjs"],
-      created_at: new Date().toISOString(),
-      updated_at: new Date().toISOString(),
-    },
-  ]);
 }

@@ -112,7 +112,7 @@ export const NoteEditor: React.FC<NoteEditorProps> = ({
       const next = !prev;
       try {
         localStorage.setItem("mynotes_show_toolbar", String(next));
-      } catch {}
+      } catch { }
       return next;
     });
   };
@@ -1234,10 +1234,10 @@ export const NoteEditor: React.FC<NoteEditorProps> = ({
                 (!tagInput.trim() ||
                   t.toLowerCase().includes(tagInput.trim().toLowerCase().replace(/^#/, "")))
             ).length === 0 && (
-              <div className="px-2 py-2 text-[10px] text-neutral-500 text-center">
-                {tagInput.trim() ? "Press Enter to create" : "No other tags"}
-              </div>
-            )}
+                <div className="px-2 py-2 text-[10px] text-neutral-500 text-center">
+                  {tagInput.trim() ? "Press Enter to create" : "No other tags"}
+                </div>
+              )}
           </div>
         )}
       </div>
@@ -1275,9 +1275,8 @@ export const NoteEditor: React.FC<NoteEditorProps> = ({
                     setIsFolderMenuOpen(false);
                     onSave({ ...note, folder: undefined });
                   }}
-                  className={`w-full text-left px-2.5 py-1.5 rounded-lg hover:bg-neutral-800 flex items-center justify-between text-xs transition-colors ${
-                    !folder ? "text-white font-medium bg-neutral-800/50" : "text-neutral-400"
-                  }`}
+                  className={`w-full text-left px-2.5 py-1.5 rounded-lg hover:bg-neutral-800 flex items-center justify-between text-xs transition-colors ${!folder ? "text-white font-medium bg-neutral-800/50" : "text-neutral-400"
+                    }`}
                 >
                   <span>General</span>
                   {!folder && <span className="text-neutral-400">✓</span>}
@@ -1291,9 +1290,8 @@ export const NoteEditor: React.FC<NoteEditorProps> = ({
                       setIsFolderMenuOpen(false);
                       onSave({ ...note, folder: f });
                     }}
-                    className={`w-full text-left px-2.5 py-1.5 rounded-lg hover:bg-neutral-800 flex items-center justify-between text-xs transition-colors ${
-                      folder === f ? "text-white font-medium bg-neutral-800/50" : "text-neutral-400"
-                    }`}
+                    className={`w-full text-left px-2.5 py-1.5 rounded-lg hover:bg-neutral-800 flex items-center justify-between text-xs transition-colors ${folder === f ? "text-white font-medium bg-neutral-800/50" : "text-neutral-400"
+                      }`}
                   >
                     <span className="truncate">{f}</span>
                     {folder === f && <span className="text-neutral-400">✓</span>}
@@ -1334,11 +1332,10 @@ export const NoteEditor: React.FC<NoteEditorProps> = ({
           {viewMode !== "preview" && (
             <button
               onClick={toggleToolbar}
-              className={`px-2.5 py-1 rounded-md text-xs font-medium flex items-center gap-1.5 transition-all border ${
-                showToolbar
-                  ? "bg-white/[0.1] text-white border-white/[0.18] shadow-xs"
-                  : "bg-white/[0.03] text-neutral-400 hover:text-neutral-200 border-white/[0.06] hover:bg-white/[0.06]"
-              }`}
+              className={`px-2.5 py-1 rounded-md text-xs font-medium flex items-center gap-1.5 transition-all border ${showToolbar
+                ? "bg-white/[0.1] text-white border-white/[0.18] shadow-xs"
+                : "bg-white/[0.03] text-neutral-400 hover:text-neutral-200 border-white/[0.06] hover:bg-white/[0.06]"
+                }`}
               title={showToolbar ? "Hide Formatting Toolbar" : "Show Formatting Toolbar"}
             >
               <SlidersHorizontal className="w-3.5 h-3.5" />
@@ -1350,11 +1347,10 @@ export const NoteEditor: React.FC<NoteEditorProps> = ({
           <div className="flex items-center p-0.5 rounded-lg bg-white/[0.04] border border-white/[0.06] text-xs">
             <button
               onClick={() => setViewMode("edit")}
-              className={`px-2.5 py-1 rounded-md flex items-center gap-1.5 transition-all text-xs ${
-                viewMode === "edit"
-                  ? "bg-white/[0.1] text-white font-medium shadow-xs"
-                  : "text-neutral-400 hover:text-neutral-200"
-              }`}
+              className={`px-2.5 py-1 rounded-md flex items-center gap-1.5 transition-all text-xs ${viewMode === "edit"
+                ? "bg-white/[0.1] text-white font-medium shadow-xs"
+                : "text-neutral-400 hover:text-neutral-200"
+                }`}
               title="Edit Mode"
             >
               <Edit3 className="w-3.5 h-3.5" />
@@ -1362,11 +1358,10 @@ export const NoteEditor: React.FC<NoteEditorProps> = ({
             </button>
             <button
               onClick={() => setViewMode("split")}
-              className={`px-2.5 py-1 rounded-md flex items-center gap-1.5 transition-all text-xs ${
-                viewMode === "split"
-                  ? "bg-white/[0.1] text-white font-medium shadow-xs"
-                  : "text-neutral-400 hover:text-neutral-200"
-              }`}
+              className={`px-2.5 py-1 rounded-md flex items-center gap-1.5 transition-all text-xs ${viewMode === "split"
+                ? "bg-white/[0.1] text-white font-medium shadow-xs"
+                : "text-neutral-400 hover:text-neutral-200"
+                }`}
               title="Split View Mode"
             >
               <Columns className="w-3.5 h-3.5" />
@@ -1374,11 +1369,10 @@ export const NoteEditor: React.FC<NoteEditorProps> = ({
             </button>
             <button
               onClick={onTogglePreview || (() => setViewMode(viewMode === "preview" ? "split" : "preview"))}
-              className={`px-2.5 py-1 rounded-md flex items-center gap-1.5 transition-all text-xs ${
-                viewMode === "preview"
-                  ? "bg-white/[0.1] text-white font-medium shadow-xs"
-                  : "text-neutral-400 hover:text-neutral-200"
-              }`}
+              className={`px-2.5 py-1 rounded-md flex items-center gap-1.5 transition-all text-xs ${viewMode === "preview"
+                ? "bg-white/[0.1] text-white font-medium shadow-xs"
+                : "text-neutral-400 hover:text-neutral-200"
+                }`}
               title="Preview Mode (Ctrl+P)"
             >
               <Eye className="w-3.5 h-3.5" />
@@ -1391,11 +1385,10 @@ export const NoteEditor: React.FC<NoteEditorProps> = ({
           {/* Subtle Publish Button */}
           <button
             onClick={() => onOpenPublish(note)}
-            className={`px-2.5 py-1 rounded-lg text-xs font-medium flex items-center gap-1.5 transition-colors border ${
-              note.is_published
-                ? "border-emerald-500/30 bg-emerald-950/30 text-emerald-300 hover:bg-emerald-900/40"
-                : "border-white/[0.06] bg-white/[0.03] text-neutral-400 hover:text-neutral-200 hover:bg-white/[0.06]"
-            }`}
+            className={`px-2.5 py-1 rounded-lg text-xs font-medium flex items-center gap-1.5 transition-colors border ${note.is_published
+              ? "border-emerald-500/30 bg-emerald-950/30 text-emerald-300 hover:bg-emerald-900/40"
+              : "border-white/[0.06] bg-white/[0.03] text-neutral-400 hover:text-neutral-200 hover:bg-white/[0.06]"
+              }`}
             title={note.is_published ? "Manage Published Note" : "Publish Note to Web"}
           >
             <Globe className="w-3.5 h-3.5" />
