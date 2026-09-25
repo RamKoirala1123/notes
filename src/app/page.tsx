@@ -12,10 +12,11 @@ import { PublishModal } from "@/components/PublishModal";
 import { ImportModal } from "@/components/ImportModal";
 import { SettingsModal } from "@/components/SettingsModal";
 import { QuickSearchModal } from "@/components/QuickSearchModal";
-import { Menu, Sparkles, FileText, CheckSquare, Search } from "lucide-react";
+import { TagWorkspace } from "@/components/TagWorkspace";
+import { Menu, Sparkles, FileText, CheckSquare, Search, Tag } from "lucide-react";
 
 export default function HomePage() {
-  const [activeView, setActiveView] = useState<"notes" | "todos">("notes");
+  const [activeView, setActiveView] = useState<"notes" | "todos" | "tags">("notes");
   const [activeNoteId, setActiveNoteId] = useState<number | null>(null);
   const [selectedTag, setSelectedTag] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState("");
@@ -438,6 +439,22 @@ export default function HomePage() {
                 <span className="text-[10px] font-mono opacity-60">({todos.length})</span>
               )}
             </button>
+
+            {/* Tags Tab */}
+            <button
+              onClick={() => setActiveView("tags")}
+              className={`flex items-center gap-2 px-3 py-1 rounded-md text-xs font-medium transition-all ${
+                activeView === "tags"
+                  ? "bg-amber-600/20 text-amber-300 border border-amber-500/30 shadow-xs font-semibold"
+                  : "text-neutral-400 hover:text-neutral-200 hover:bg-white/[0.04]"
+              }`}
+            >
+              <Tag className="w-3.5 h-3.5 text-amber-400" />
+              <span>Tags</span>
+              <span className="text-[10px] font-mono opacity-60">
+                ({new Set([...notes.flatMap((n) => n.tags || []), ...todos.flatMap((t) => t.tags || [])]).size})
+              </span>
+            </button>
           </div>
 
           {/* Quick Search Shortcut Trigger */}
@@ -467,6 +484,22 @@ export default function HomePage() {
             searchQuery={searchQuery}
             onSelectTag={setSelectedTag}
             onSwitchToNotes={() => setActiveView("notes")}
+          />
+        ) : activeView === "tags" ? (
+          <TagWorkspace
+            notes={notes}
+            todos={todos}
+            todoLists={todoLists}
+            selectedTag={selectedTag}
+            onSelectTag={setSelectedTag}
+            onSelectNote={(note) => {
+              if (note.id) setActiveNoteId(note.id);
+            }}
+            onSelectTodoList={(id) => {
+              setActiveTodoListId(id);
+            }}
+            onSwitchToNotes={() => setActiveView("notes")}
+            onSwitchToTodos={() => setActiveView("todos")}
           />
         ) : activeNote ? (
           <NoteEditor
@@ -500,7 +533,7 @@ export default function HomePage() {
         onClose={() => setIsQuickSearchOpen(false)}
         notes={notes}
         activeNote={activeNote || null}
-        onSelectNote={(note) => {
+        onSelectNote={(note: Note) => {
           if (note.id) setActiveNoteId(note.id);
           setActiveView("notes");
           setIsMobileOpen(false);
@@ -513,7 +546,7 @@ export default function HomePage() {
             showToast("Note saved! (⌘S)");
           }
         }}
-        onChangeView={(view) => {
+        onChangeView={(view: "notes" | "todos" | "tags") => {
           setActiveView(view);
           setIsMobileOpen(false);
         }}
