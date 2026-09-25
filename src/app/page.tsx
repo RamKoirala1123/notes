@@ -345,13 +345,14 @@ export default function HomePage() {
 
   return (
     <div className="flex h-screen w-screen overflow-hidden bg-neutral-950 font-sans text-neutral-100">
-      {/* Mobile Menu Toggle Button */}
-      <button
-        onClick={() => setIsMobileOpen(!isMobileOpen)}
-        className="md:hidden fixed top-3 left-3 z-50 p-2 rounded-xl bg-neutral-900 border border-neutral-800 text-neutral-300 shadow-lg"
-      >
-        <Menu className="w-5 h-5" />
-      </button>
+      {/* Mobile Drawer Backdrop Overlay */}
+      {isMobileOpen && (
+        <div
+          onClick={() => setIsMobileOpen(false)}
+          className="fixed inset-0 z-30 bg-black/70 backdrop-blur-xs md:hidden transition-opacity"
+          aria-hidden="true"
+        />
+      )}
 
       {/* Sidebar Component */}
       <Sidebar
@@ -386,6 +387,7 @@ export default function HomePage() {
         onSelectTodoList={(id) => {
           setActiveTodoListId(id);
           setActiveView("todos");
+          setIsMobileOpen(false);
         }}
         onCreateTodoList={handleCreateTodoList}
         onDeleteTodoList={handleDeleteTodoList}

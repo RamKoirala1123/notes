@@ -117,7 +117,20 @@ export const NoteEditor: React.FC<NoteEditorProps> = ({
     });
   };
 
-  const viewMode = controlledViewMode ?? internalViewMode;
+  const [isMobileScreen, setIsMobileScreen] = useState(false);
+
+  useEffect(() => {
+    const checkMobile = () => {
+      setIsMobileScreen(window.innerWidth < 768);
+    };
+    checkMobile();
+    window.addEventListener("resize", checkMobile);
+    return () => window.removeEventListener("resize", checkMobile);
+  }, []);
+
+  const rawViewMode = controlledViewMode ?? internalViewMode;
+  const viewMode = (isMobileScreen && rawViewMode === "split") ? "edit" : rawViewMode;
+
   const setViewMode = (mode: "split" | "edit" | "preview" | ((prev: "split" | "edit" | "preview") => "split" | "edit" | "preview")) => {
     const resolvedMode = typeof mode === "function" ? mode(viewMode) : mode;
     setInternalViewMode(resolvedMode);
@@ -1343,40 +1356,46 @@ export const NoteEditor: React.FC<NoteEditorProps> = ({
             </button>
           )}
 
-          {/* Segmented View Mode */}
+          {/* Segmented View Mode (Edit & Preview on Mobile, Split on Desktop) */}
           <div className="flex items-center p-0.5 rounded-lg bg-white/[0.04] border border-white/[0.06] text-xs">
             <button
               onClick={() => setViewMode("edit")}
-              className={`px-2.5 py-1 rounded-md flex items-center gap-1.5 transition-all text-xs ${viewMode === "edit"
-                ? "bg-white/[0.1] text-white font-medium shadow-xs"
-                : "text-neutral-400 hover:text-neutral-200"
-                }`}
+              className={`px-2.5 py-1 rounded-md flex items-center gap-1.5 transition-all text-xs ${
+                viewMode === "edit"
+                  ? "bg-white/[0.1] text-white font-medium shadow-xs"
+                  : "text-neutral-400 hover:text-neutral-200"
+              }`}
               title="Edit Mode"
             >
               <Edit3 className="w-3.5 h-3.5" />
-              <span className="hidden sm:inline">Edit</span>
+              <span>Edit</span>
             </button>
+
+            {/* Split View Button (Hidden on Mobile) */}
             <button
               onClick={() => setViewMode("split")}
-              className={`px-2.5 py-1 rounded-md flex items-center gap-1.5 transition-all text-xs ${viewMode === "split"
-                ? "bg-white/[0.1] text-white font-medium shadow-xs"
-                : "text-neutral-400 hover:text-neutral-200"
-                }`}
+              className={`hidden md:flex px-2.5 py-1 rounded-md items-center gap-1.5 transition-all text-xs ${
+                viewMode === "split"
+                  ? "bg-white/[0.1] text-white font-medium shadow-xs"
+                  : "text-neutral-400 hover:text-neutral-200"
+              }`}
               title="Split View Mode"
             >
               <Columns className="w-3.5 h-3.5" />
-              <span className="hidden sm:inline">Split</span>
+              <span>Split</span>
             </button>
+
             <button
-              onClick={onTogglePreview || (() => setViewMode(viewMode === "preview" ? "split" : "preview"))}
-              className={`px-2.5 py-1 rounded-md flex items-center gap-1.5 transition-all text-xs ${viewMode === "preview"
-                ? "bg-white/[0.1] text-white font-medium shadow-xs"
-                : "text-neutral-400 hover:text-neutral-200"
-                }`}
+              onClick={onTogglePreview || (() => setViewMode(viewMode === "preview" ? (isMobileScreen ? "edit" : "split") : "preview"))}
+              className={`px-2.5 py-1 rounded-md flex items-center gap-1.5 transition-all text-xs ${
+                viewMode === "preview"
+                  ? "bg-white/[0.1] text-white font-medium shadow-xs"
+                  : "text-neutral-400 hover:text-neutral-200"
+              }`}
               title="Preview Mode (Ctrl+P)"
             >
               <Eye className="w-3.5 h-3.5" />
-              <span className="hidden sm:inline">Preview</span>
+              <span>Preview</span>
             </button>
           </div>
 
@@ -1599,10 +1618,10 @@ export const NoteEditor: React.FC<NoteEditorProps> = ({
 
       {/* Main Workspace */}
       {viewMode === "split" ? (
-        /* Split View: Balanced Two-Column Layout */
-        <div className="flex-1 flex overflow-hidden">
+        /* Split View: Balanced Two-Column / Mobile Stacked Layout */
+        <div className="flex-1 flex flex-col md:flex-row overflow-hidden">
           {/* Left Column: Editor */}
-          <div className="flex-1 h-full overflow-y-auto border-r border-white/[0.06] flex flex-col">
+          <div className="flex-1 h-full overflow-y-auto border-b md:border-b-0 md:border-r border-white/[0.06] flex flex-col">
             <div className="max-w-2xl w-full mx-auto px-6 py-8 flex flex-col flex-1">
               <input
                 ref={titleInputRef}
