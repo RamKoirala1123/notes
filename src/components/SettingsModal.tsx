@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect } from "react";
 import { resetDatabaseToDemo, db } from "@/lib/db";
-import { Settings, RefreshCw, Database, HardDrive, X, Check, ShieldAlert } from "lucide-react";
+import { Settings, RefreshCw, HardDrive, X, ShieldAlert, Smartphone, Download, CheckCircle2 } from "lucide-react";
 
 interface SettingsModalProps {
   isOpen: boolean;
@@ -13,14 +13,40 @@ interface SettingsModalProps {
 export const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose, onResetComplete }) => {
   const [noteCount, setNoteCount] = useState<number>(0);
   const [isResetting, setIsResetting] = useState(false);
+  const [deferredPrompt, setDeferredPrompt] = useState<any>(null);
+  const [isStandalone, setIsStandalone] = useState(false);
 
   useEffect(() => {
     if (isOpen) {
       db.notes.count().then((count) => setNoteCount(count));
     }
+
+    if (typeof window !== "undefined") {
+      const match = window.matchMedia("(display-mode: standalone)").matches || (navigator as any).standalone;
+      setIsStandalone(Boolean(match));
+
+      const handleBeforeInstallPrompt = (e: Event) => {
+        e.preventDefault();
+        setDeferredPrompt(e);
+      };
+
+      window.addEventListener("beforeinstallprompt", handleBeforeInstallPrompt);
+      return () => window.removeEventListener("beforeinstallprompt", handleBeforeInstallPrompt);
+    }
   }, [isOpen]);
 
   if (!isOpen) return null;
+
+  const handleInstallPWA = async () => {
+    if (deferredPrompt) {
+      deferredPrompt.prompt();
+      const choiceResult = await deferredPrompt.userChoice;
+      if (choiceResult.outcome === "accepted") {
+        setIsStandalone(true);
+      }
+      setDeferredPrompt(null);
+    }
+  };
 
   const handleResetDemo = async () => {
     if (confirm("Are you sure you want to reset all notes to initial demo state?")) {
@@ -49,7 +75,49 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose, o
         </div>
 
         {/* Modal Content */}
-        <div className="p-6 space-y-6">
+        <div className="p-6 space-y-5 max-h-[80vh] overflow-y-auto">
+          {/* PWA Android / Mobile Installation Card */}
+          <div className="p-4 rounded-xl bg-indigo-950/40 border border-indigo-500/30 space-y-3">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2 text-indigo-300 font-semibold text-xs">
+                <Smartphone className="w-4 h-4 text-indigo-400" />
+                <span>Install on Android / Mobile (PWA)</span>
+              </div>
+              {isStandalone && (
+                <span className="inline-flex items-center gap-1 text-[10px] font-semibold text-emerald-400 bg-emerald-950/60 border border-emerald-800 px-2 py-0.5 rounded-full">
+                  <CheckCircle2 className="w-3 h-3" /> Installed
+                </span>
+              )}
+            </div>
+
+            <p className="text-neutral-300 text-[11px] leading-relaxed">
+              Install <strong>Notes</strong> directly on your Android phone home screen to run standalone full-screen like a native app with fast offline access!
+            </p>
+
+            {deferredPrompt ? (
+              <button
+                onClick={handleInstallPWA}
+                className="w-full py-2 rounded-lg bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-semibold flex items-center justify-center gap-2 transition-colors shadow-md"
+              >
+                <Download className="w-4 h-4" />
+                <span>Install App on Android</span>
+              </button>
+            ) : isStandalone ? (
+              <div className="p-2 rounded bg-neutral-900/60 text-[11px] text-emerald-300 text-center font-medium border border-emerald-900/50">
+                ✓ Running in Standalone App Mode
+              </div>
+            ) : (
+              <div className="p-2.5 rounded-lg bg-neutral-900/80 border border-neutral-800 text-[11px] text-neutral-400 space-y-1">
+                <p className="font-medium text-neutral-300">How to install on Android Chrome:</p>
+                <ol className="list-decimal list-inside space-y-0.5 text-[10px] text-neutral-400">
+                  <li>Tap Chrome&apos;s <strong>⋮ (Three dots menu)</strong> at top right.</li>
+                  <li>Select <strong>&quot;Add to Home screen&quot;</strong> or <strong>&quot;Install app&quot;</strong>.</li>
+                  <li>Confirm installation — your app icon will appear on your phone screen!</li>
+                </ol>
+              </div>
+            )}
+          </div>
+
           {/* Storage Gauge */}
           <div className="p-4 rounded-xl bg-neutral-950/80 border border-neutral-800 flex items-center justify-between">
             <div className="flex items-center gap-3">
@@ -62,16 +130,6 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose, o
             <span className="text-[10px] px-2 py-1 rounded bg-indigo-500/20 text-indigo-300 font-semibold border border-indigo-500/30">
               Client Offline Mode
             </span>
-          </div>
-
-          {/* Vercel Deployment Notice */}
-          <div className="p-4 rounded-xl bg-indigo-950/30 border border-indigo-800/40 text-xs space-y-1">
-            <h4 className="font-semibold text-indigo-300 flex items-center gap-1.5">
-              <span>🚀 Ready for Vercel & Custom Domain</span>
-            </h4>
-            <p className="text-neutral-400 leading-relaxed text-[11px]">
-              This Next.js app uses client-side browser storage (IndexedDB), making it 100% compatible with static export or standard Next.js hosting on your Vercel custom domain!
-            </p>
           </div>
 
           {/* Reset Action */}
